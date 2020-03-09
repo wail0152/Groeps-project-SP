@@ -13,13 +13,13 @@ cursor = cnx.cursor()
 cursor.execute("DROP TABLE IF EXISTS products;")
 
 cursor.execute("CREATE TABLE products"
-                "(id char(24) PRIMARY KEY,"
-                "category char(24),"
-                "sub_category char(24),"
-                "sub_sub_category char(24),"
-                "gender char(8),"
-                "brand char(24),"
-                "mrsp int(10))"
+                "(id char(28) PRIMARY KEY,"
+                "category char(43),"
+                "sub_category char(25),"
+                "sub_sub_category char(33),"
+                "gender char(15),"
+                "brand char(26),"
+                "mrsp int)"
                 "ENGINE=InnoDB")
 
 command = ("INSERT INTO products (id, category, sub_category, sub_sub_category, gender, brand, mrsp) "

@@ -6,6 +6,17 @@ limit = 100
 client = MongoClient('localhost', 27017)
 db = client["huwebshop"]
 collection = db["products"]
+collection2 = db["profiles"]
+collection3 = db["sessions"]
+
+temp = 0
+for profile in collection2.find():
+    temp = str(profile["buids"][0])
+    break
+
+for session in collection3.find():
+    if temp == str(session["buid"][0]):
+        print("FOUND!")
 
 cnx = mysql.connector.connect(user='root', password='root', host='127.0.0.1', port='3307', database='huwebshop')
 cursor = cnx.cursor()

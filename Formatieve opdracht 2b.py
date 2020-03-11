@@ -1,3 +1,5 @@
+# Verkeerd!
+
 import mysql.connector
 from pymongo import MongoClient
 
@@ -36,22 +38,38 @@ def create_table(table_name, *args):
     for entry in collection.find():
         value_list = []
         for arg in args:
-            if "-" in arg:
+            if "-" in arg:  # Checking if the argument is a double argument
                 nested_arg = arg.split()[0].split("-")
-                value_list.append(entry[nested_arg[0]][nested_arg[1]])
+                try:
+                    value_list.append(entry[nested_arg[0]][nested_arg[1]])
+                except KeyError:
+                    value_list.append(None)
             else:
-                value_list.append(entry[arg.split()[0]])
+                try:
+                    value_list.append(str(entry[arg.split()[0]]))
+                except KeyError:
+                    value_list.append(None)
+
         values.append(tuple(value_list))
 
         counter += 1
         if counter == limit:
-            print(f"{counter} entries of {table_name} uploaded.")
             break
+
+    for value in values:
+        for ind in value:
+            if type(ind) == list:
+                print(value)
     cursor.executemany(command, values)
+    print(f"{counter} entries of {table_name} uploaded.")
 
 
-create_table("products", "_id char(28) PRIMARY KEY,", "category char(43),", "sub_category char(25),", "sub_sub_category char(33),",
-             "gender char(15),", "brand char(26),", "price-mrsp int)")
+create_table("profiles", "_id VARCHAR(45) PRIMARY KEY,", "order-count VARCHAR(45))")
+
+# create_table("sessions", "_id VARCHAR(45) PRIMARY KEY,", "has_sale VARCHAR(45),", "prefences VARCHAR(45))")
+
+# create_table("products", "_id VARCHAR(45) PRIMARY KEY,", "category char(43),", "sub_category char(25),",
+#             "sub_sub_category char(33),", "gender char(15),", "brand char(26),", "price-selling_price int)")
 
 cnx.commit()
 cnx.close()

@@ -62,5 +62,6 @@ def create_table(normalized, table_name, db_name, values, headers):
 create_table(True, "gender", "products", ["gender"], ["idgender", "gendernaam"])
 create_table(True, "brand", "products", ["brand"], ["idbrand", "brandnaam"])
 create_table(False, "profile", "profiles", ["order-count", "recommendations-segment"], ["id", "`order.count`", "recmonendation_segment"])
+#create_table(False, "session", "sessions", ["has_sale", "segment", "?"], ["id", "has_sale", "preferences", "profile_id", "?"]) #NOT WORKING BECAUSE OF FK
 
 cnx.close()

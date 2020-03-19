@@ -4,7 +4,9 @@ import random
 c = psycopg2.connect("dbname=postgres user=postgres password=postgres")
 cur = c.cursor()
 counter = 0
-limit = 100
+limit = 2100000
+profile_to_sale = {}
+products_to_profiles = {}
 
 
 def create_recommendation_table(table_name):
@@ -13,14 +15,32 @@ def create_recommendation_table(table_name):
                     product2 VARCHAR, product3 VARCHAR, product4 VARCHAR);""")
 
 
+def get_profiles_sales():
+    global profile_to_sale
+    cur.execute(f"""select profid, sale from sessions;""")
+    sales = cur.fetchall()
+    for sale in sales:
+        profile_to_sale[sale[0]] = sale[1]
+
+
+def get_bought_products():
+    global products_to_profiles
+    cur.execute(f"""select profid, prodid from profiles_previously_viewed;""")
+    bought_products_ids = cur.fetchall()
+    for bought_products_id in bought_products_ids:
+        products_to_profiles[bought_products_id[0]] = bought_products_id[1]
+
+
 def insert_recommendations(select_table, insert_table, similar_def):
     global counter
+    # create_recommendation_table(insert_table)
     cur.execute(f"""select id from {select_table};""")
     pids = cur.fetchall()
 
     # Getting all the ids of the similar products and uploading them.
     upload_values = []
     for pid in pids:
+        print(counter)
         upload_values.append(list(pid) + similar_def(pid[0].replace("'", "''"), ["subsubcategory", "targetaudience"]))
         counter += 1
         if counter >= limit:
@@ -87,26 +107,21 @@ def get_conditions_query(attributes, info):
 
 
 def get_recommendation_products(profile_id):
-    cur.execute(f"""select prodid from profiles_previously_viewed where profid = '{profile_id}';""")
-    bought_products_ids = cur.fetchall()
-
     # This is to account for the imperfect data.
-    if not bought_products_ids:
+    if profile_id not in products_to_profiles:
         return similar_profile(profile_id, ["devicetype", "os"])
 
-    rand_product_id = [product_id[0] for product_id in random.sample(bought_products_ids, k=1)]
-    return similar_products(rand_product_id[0], ["subsubcategory", "targetaudience"])
+    bought_product_id = products_to_profiles[profile_id]
+    return similar_products(bought_product_id, ["subsubcategory", "targetaudience"])
 
 
 def get_recommendation(profile_id, placeholder):
     # Check if profile is empty and then return None.
-    cur.execute(f"""select * from sessions where profid = '{profile_id}';""")
-    if not cur.fetchall():
+    if profile_id not in profile_to_sale:
         return [profile_id, profile_id, profile_id, profile_id]
 
     # Check if profile id has a sale in the sessions.
-    cur.execute(f"""select sale from sessions where profid = '{profile_id}' and sale = true;""")
-    has_sale = cur.fetchall()
+    has_sale = profile_to_sale[profile_id]
 
     # if has_sale choose random product with profile id and get a similar product via the database recommendation table
     # else check for a similar profile.
@@ -120,10 +135,10 @@ def get_recommendation_from_table(profile_id):
 
 
 # TODO: let these four lines run once and then comment them out.
-# create_recommendation_table("product_recommendations")
-# create_recommendation_table("profile_recommendations")
 # insert_recommendations("products", "product_recommendations", similar_products)
-# insert_recommendations("profiles", "profile_recommendations", get_recommendation)
+get_profiles_sales()
+get_bought_products()
+insert_recommendations("profiles", "profile_recommendations", get_recommendation)
 # [debug purpose] (has sale: 5a393d68ed295900010384ca) (doesn't have sale: 5a394bebed2959000103972f).
 # print(get_recommendation_from_table("5a393d68ed295900010384ca"))
 

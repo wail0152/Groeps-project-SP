@@ -40,10 +40,10 @@ def similar_products(product_id, attributes):
 def similar_profile(profile_id, attributes):
     # Check for similar profiles
     cur.execute(f"""select {get_attributes_query(attributes)} from sessions where profid = '{profile_id}';""")
-    info = list(cur.fetchall()[0])
+    properties_to_match = list(cur.fetchall()[0])
 
     # Pick random profile
-    conditions = get_conditions_query(attributes, info)
+    conditions = get_conditions_query(attributes, properties_to_match)
     cur.execute(f"""select profid from sessions where profid != '{profile_id}' and {conditions} and sale = true;""")
     profiles = cur.fetchall()
     rand_profile = [profile[0] for profile in random.sample(profiles, k=1)]
@@ -91,9 +91,9 @@ def get_recommendation(profile_id):
     return get_recommendation_products(profile_id) if has_sale else similar_profile(profile_id, ["devicetype", "os"])
 
 
-insert_recommendations()  #TODO: let this run once and then comment it out.
+# insert_recommendations()  #TODO: let this run once and then comment it out.
 # [debug purpose] (has sale: 5a2df924a56ac6edb4feab38) (doesn't have sale: 5ad7b06d89518600011831d0).
-# print(get_recommendation("5ad7b06d89518600011831d0"))
+print(get_recommendation("5ad7b06d89518600011831d0"))
 
 c.commit()
 cur.close()

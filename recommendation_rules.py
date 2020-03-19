@@ -1,5 +1,6 @@
 import psycopg2
 import random
+import time
 
 c = psycopg2.connect("dbname=postgres user=postgres password=postgres")
 cur = c.cursor()
@@ -7,6 +8,8 @@ counter = 0
 limit = 2100000
 profile_to_sale = {}
 products_to_profiles = {}
+attribute_to_profiles = {}
+profiles_information = {}
 
 
 def create_recommendation_table(table_name):
@@ -31,6 +34,20 @@ def get_bought_products():
         products_to_profiles[bought_products_id[0]] = bought_products_id[1]
 
 
+def get_properties_profile(attributes):
+    cur.execute(f"""select profid, {attributes} from sessions;""")
+    attributes_products = cur.fetchall()
+    for attribute in attributes_products:
+        attribute_to_profiles[attribute[0]] = [attribute[1], attribute[2]]
+
+
+def get_similar_profiles():
+    cur.execute(f"""select profid, devicetype, os from sessions where sale = true;""")
+    profiles_info = cur.fetchall()
+    for pi in profiles_info:
+        profiles_information[pi[0]] = [pi[1], pi[2]]
+
+
 def insert_recommendations(select_table, insert_table, similar_def):
     global counter
     # create_recommendation_table(insert_table)
@@ -39,8 +56,11 @@ def insert_recommendations(select_table, insert_table, similar_def):
 
     # Getting all the ids of the similar products and uploading them.
     upload_values = []
+    start_time = time.time()
     for pid in pids:
-        print(counter)
+        if time.time() - start_time >= 60:
+            print(counter)
+            exit()
         upload_values.append(list(pid) + similar_def(pid[0].replace("'", "''"), ["subsubcategory", "targetaudience"]))
         counter += 1
         if counter >= limit:
@@ -71,17 +91,15 @@ def similar_products(product_id, attributes):
 
 def similar_profile(profile_id, attributes):
     # Check for similar profiles
-    cur.execute(f"""select {get_attributes_query(attributes)} from sessions where profid = '{profile_id}';""")
-    temp = cur.fetchall()
-    properties_to_match = list(temp[0])
+    properties_to_match = attribute_to_profiles[profile_id]
 
     # Pick random profile
-    conditions = get_conditions_query(attributes, properties_to_match)
-    cur.execute(f"""select profid from sessions where profid != '{profile_id}' and {conditions} and sale = true;""")
-    profiles = cur.fetchall()
-    rand_profile = [profile[0] for profile in random.sample(profiles, k=1)]
-
-    return get_recommendation_products(rand_profile[0])
+    temp = []
+    for prof in profiles_information:
+        if profiles_information[prof] == properties_to_match and prof != profile_id:
+            temp = prof
+    print(temp)
+    return get_recommendation_products(temp)
 
 
 def get_attributes_query(attributes):
@@ -135,12 +153,14 @@ def get_recommendation_from_table(profile_id):
 
 
 # TODO: let these four lines run once and then comment them out.
-# insert_recommendations("products", "product_recommendations", similar_products)
+insert_recommendations("products", "product_recommendations", similar_products)
 get_profiles_sales()
 get_bought_products()
+get_properties_profile("devicetype, os")
+get_similar_profiles()
 insert_recommendations("profiles", "profile_recommendations", get_recommendation)
 # [debug purpose] (has sale: 5a393d68ed295900010384ca) (doesn't have sale: 5a394bebed2959000103972f).
-# print(get_recommendation_from_table("5a393d68ed295900010384ca"))
+print(get_recommendation_from_table("5a393d68ed295900010384ca"))
 
 
 c.commit()
